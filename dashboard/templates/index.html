@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIDS DASHBOARD</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* Reset orbase */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI',system-ui, sans-serif;
+            background-color: #0f1117;
+            color: #e2e8f0;
+            min-height: 100vh; /*vh is viewport height like browser heigh window ki percentage*/
+        }
+
+        /* topnav */
+        nav {
+            background-color: #1a1d2e;
+            padding: 0.75rem 2rem; /*rem is root element 1rem=16px*/
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            border-bottom: 1px solid #2d3748;
+            position: sticky; top: 0; z-index: 100;
+
+        }
+        nav .brand {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #63b3ed;
+            letter-spacing: 0.05em;
+        }
+        nav a { 
+            color: #a0aec0;
+            text-emphasis: none;
+            font-size: 0.9rem;
+        }
+        nav a:hover {
+            color: #fff;
+        }
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #48bb78;
+            margin-left: auto;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%,100% {opacity: 1;}
+            50% {opacity: 0.3;}
+        }
+
+        .live-label {
+            font-size: 0.75rem;
+            color: #48bb78;
+        }
+
+        /*layout*/
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+        }
+        h2 {
+            font-size: 1.05rem;
+            margin-bottom: 0.8rem;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 0.08rem;
+        }
+
+        /*stat cards*/
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background-color: #1a1d2e;
+            padding: 1.1rem 1.3rem;
+            border-radius: 10px;
+            border: 1px solid #2d3748;
+        }
+        .stat-card{
+            background: #1a1d2e;
+            border: 1px solid #2d3748;
+            border-radius: 10px;
+            padding: 1.1rem 1.3rem;
+        }
+        .stat-card .value{
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 0.2rem;
+        }
+        .stat-card.critical .value {color: #fc8181;}
+        .stat-card.high .value {color: #f6ad55;}
+        .stat-card.normal .value {color: #63b3ed;}
+        .stat-card.green .value {color: #68d391;}
+
+        /*chartrow*/
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .chart-card {
+            background: #1a1d2e;
+            border: 1px solid #2d3748;
+            border-radius: 10px;
+            padding: 1rem 1.2rem;
+        }
+        .chart-card canvas {max-height: 220px;}
+
+        /*table*/
+
+        .table-card{
+            background: #1a1d2e;
+            border: 1px solid #2d3748;
+            border-radius: 10px;
+            padding: 1rem 1.2rem;
+            overflow-x: auto ;
+        }
+        table {width: 100%; border-collapse: collapse; font-size: .85rem;}
+        thead th{
+            text-align: left;
+            padding: 0.5rem;
+            color: #718096;
+            font-weight: 600;
+            border-bottom: 1px solid #2d3748;
+            white-space: nowrap;
+        }
+        tbody tr:hover {background: #1e2235;}
+        tbody td{
+            padding: 0.45rem 0.7rem;
+            border-bottom: 1px solid #1e2235;
+        }
+        
+        /*Emergency badge*/
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: 99px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge.critical {background: #9b2335; color: #fff;}
+        .badge.high {background: #c05621; color: #fff;}
+        .badge.medium {background: #744210; color: #fed7aa;}
+        .badge.low {background: #1c4532; color: #9ae6b4;}
+        .badge.info {background: #1a365d; color: #90cdf4;}
+
+        .attack-tag {
+            font-family: monospace;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            background: #2d3748;
+            color: #a0aec0;
+        }
+
+        /*Footer*/
+        footer {
+            text-align: center;
+            padding: 1.2rem;
+            color: #4a5568;
+            font-size: 0.78rem;
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <span class="brand" &#x1F6E>NIDS Dashboard</span>
+    <a href="/">Overview</a>
+    <a href="/events">All Events</a>
+    <span class="live-dot"></span>
+    <span class="live-label">LIVE &mdash; refresh every {{ refresh }}s</span>
+</nav>
+</body>
+
+<main>
+    <!-- stat -->
+     <div class="stats-grid">
+        <div class ="stat-card normal">
+            <div class="label"> Total Events</div>
+            <div class="value" id="stat-total">{{ stats.total_events }}</div>
+        </div>
+        <div class ="stat-card critical">
+            <div class="label"> Critical</div>
+            <div class="value" id="stat-critical">{{ stats.critical }}</div>
+        </div>
+        <div class ="stat-card high">
+            <div class="label"> Last 24 h</div>
+            <div class="value" id="stat-24h">{{ stats.last_24h }}</div>
+        </div>
+        <div class ="stat-card green">
+            <div class="label"> Unique Attackers</div>
+            <div class="value" id="stat-ips">{{ stats.unique_attackers }}</div>
+        </div>
+     </div>
+</main>
