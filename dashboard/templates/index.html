@@ -206,4 +206,61 @@
             <div class="value" id="stat-ips">{{ stats.unique_attackers }}</div>
         </div>
      </div>
+
+    <!-- charts -->
+     <div class="charts-grid">
+        <div class="chart-card">
+            <h2>Attack Types</h2>
+            <canvas id="chartType"></canvas>
+        </div>
+        <div class="chart-card">
+            <h2>Top Attackers IPs</h2>
+            <canvas id="chartIps"></canvas>
+        </div>
+        <div class="chart-card">
+            <h2>Events &mdash; Attack Types</h2>
+            <canvas id="chartTimeLine"></canvas>
+        </div>
+    </div>
+
+    <!-- recent events  -->
+    <div class="table-card">
+        <h2>Recent Events</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th><th>Timestamp (UTC)</th><th>Attack</th>
+                    <th>Severity</th><th>Source IP</th><th>Dest IP</th><th>Details</th>                    
+                </tr>
+            </thead>
+            <tbody id="events-tbody">
+                {% for e in events %}
+                <tr>
+                    <td>{{ e.id }}</td>
+                    <td>{{ e.timestamp }}</td>
+                    <td><span class="attack-tag">{{ e.attack_type }}</span></td>
+                    <td><span class="badge badge-{{ e.severity }}">{{ e.severity }}</span></td>
+                    <td>{{ e.source_ip }}</td>
+                    <td>{{ e.dest_ip }}</td>
+                    <td style="max-width:300px;overflow:hidden;text-overflow: ellipsis;white-space: nowrap;" title="{{ e.packet_info }}">{{ e.packet_info }}</td>
+
+                </tr>
+                {% else %}
+                <tr><td colspan="7" style="text-align:center;color:#718096;padding:2rem;">No events yet. Start the NIDS to capture traffic.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p style="margin-top: .8rem;"><a href="/events" style="color: #63b3ed;font-size: .85rem;">View All Events &rarr;</a></p>
+     </div>
+
 </main>
+<footer>Python NONS NIDS &mdash; DEFENCE SEC TOOL</footer>
+
+<script>
+
+// chart help 
+const PALETTE = [
+    '#fc8181','#f6ad55','#faf089','#68d391',
+  '#63b3ed','#b794f4','#f687b3','#4fd1c5',
+]
+</script>
