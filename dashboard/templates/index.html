@@ -262,5 +262,114 @@
 const PALETTE = [
     '#fc8181','#f6ad55','#faf089','#68d391',
   '#63b3ed','#b794f4','#f687b3','#4fd1c5',
-]
+];
+
+function makeBarChart(ctx, labels, data) {
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{label: labelText, data,
+                backgroundColor: PALETTE,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            Plugin: { legend: {display: false}},
+            scales:{
+                x: { ticks: {color: '#a0aec0'}, grid: {color: '#2d3748'}},
+                y: { ticks: {color: '#a0aec0'}, grid: {color: '#2d3748'}},
+            }
+        }
+    });
+}
+
+function makePieChart(ctx, labels, data) {
+    return new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{data, backgroundColor: PALETTE, borderwidth:0}]},
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: {position: 'right', labels:{color:'#a0aec0', boxwidth:12}}},
+        }
+    });
+}
+
+async function fetchJSON(url) {
+    const response = await fetch(url);
+    return await r.json();
+}
+
+// intialize charts 
+
+let chartType, chartIps, chartTimeLine;
+
+async function  initCharts() {
+    const [typeData, ipsData, tlData] = await Promise.all([
+        fetchJSON('/api/chart/by_types'),
+        fetchJSON('/api/chart/top_ips'),
+        fetchJSON('/api/chart/timeline'),
+    ]);
+
+    chartType = makePieChart(document.getElementById('chartType').getContext('2d'), typeData.labels, typeData.data);
+    chartIps = makeBarChart(document.getElementById('chartIps').getContext('2d'), ipsData.labels, ipsData.data, 'Events');
+    chartTimeLine = makeBarChart(document.getElementById('chartTimeLine').getContext('2d'), tlData.labels, tlData.data, 'Events/hr');
+    
+}
+
+// Autoref
+
+async function refreshstats(){
+    const s = await fetchJSON('/api/stats');
+    document.getElementById('stat-total').textContent = s.total_events;
+    document.getElementById('stat-critical').textContent = s.critical;
+    document.getElementById('stat-24h').textContent = s.last_24h;
+    document.getElementById('stat-ips').textContent = s.unique_attackers;
+
+}
+
+async function refreshEvents(){
+    const events = await fetchJSON('/api/events?limit=50');
+    const tbody = document.getElementById('events-tbody');
+    if (!events.length) return;
+    tbody.innerHTML = events.map(e => `
+        <tr>
+            <td>${e.id}</td>
+            <td>${e.timestamp}</td>
+            <td><span class="attack-tag">${e.attack_type}</span></td>
+            <td><span class="badge badge-${e.severity}">${e.severity}</span></td>
+            <td>${e.source_ip}</td>
+            <td>${e.dest_ip || ''}</td>
+            <td style="max-width:300px;overflow:hidden;text-overflow: ellipsis;white-space: nowrap;">${e.packet_info || ''}</td>
+        </tr>`).join('');
+}
+
+async function refreshCharts(){
+    const [typeData, ipsData, tlData] = await Promise.all([
+        fetchJSON('/api/chart/by_types'),
+        fetchJSON('/api/chart/top_ips'),
+        fetchJSON('/api/chart/timeline'),
+    ]);
+    chartType.data.labels = typeData.labels;
+    chartType.data.datasets[0].data = typeData.data;
+    chartType.update();
+
+    chartIps.data.labels = ipsData.labels;
+    chartIps.data.datasets[0].data = ipsData.data;
+    chartIps.update();
+
+    chartTimeLine.data.labels = tlData.labels;
+    chartTimeLine.data.datasets[0].data = tlData.data;
+    chartTimeLine.update();
+}
+
+async function refresh() {
+    await Promise.all([refreshstats(), refreshEvents(), refreshCharts()]);
+}
+
+initCharts();
+setInterval(refresh, {{ refresh }}* 1000 );
 </script>
+</body>
+</html>
